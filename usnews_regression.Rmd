@@ -1,0 +1,89 @@
+---
+title: "usnews_regression"
+author: "Jonathan Ratschat"
+date: "21 9 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(HH)
+library(sjPlot)
+library(ggplot2)
+library(ggeffects)
+library(ggthemes)
+```
+
+
+```{r}
+usnews <- read.csv("C:/Users/Jonathan Ratschat/Google Drive/Colab Notebooks/Scraping/usnews/data/usnews.csv")
+str(usnews)
+```
+
+```{r}
+usnews <- usnews %>% 
+  mutate(NewsProvider = as.factor(NewsProvider),
+         Dominant_Topic = as.factor(Dominant_Topic))
+```
+
+
+```{r}
+mod1 <- lm(Sentiment ~ Dominant_Topic + NewsProvider, data = usnews)
+summary(mod1, robust=TRUE)
+```
+
+```{r}
+vif(mod1)
+```
+
+```{r}
+mean(vif(mod1))
+```
+
+
+```{r}
+mod2 <- lm(Sentiment ~ Dominant_Topic * NewsProvider, data = usnews)
+print(summary(mod2, robust=TRUE))
+```
+
+```{r}
+vif(mod2)
+```
+
+```{r}
+mean(vif(mod2), na.rm = TRUE)
+```
+
+
+```{r}
+dat <- ggeffects::ggpredict(mod2, terms = c("Dominant_Topic", "NewsProvider"))
+
+ggplot(data = dat, aes(x=dat$x, y= dat$predicted, color = dat$group)) + 
+  geom_point(size = 4, position = position_dodge(.3)) +
+  #geom_errorbar(aes(ymin = conf.low, ymax = conf.high), position = position_dodge(.3)) +
+  scale_y_continuous(limits=c(-1,1)) +
+  scale_color_manual(values=c("#2020df", "#df9c20", "#107010", "#df2020")) +
+  xlab("Dominant Topic") + 
+  ylab("Predicted Sentiment") +
+  labs(colour = "News Provider") +
+  theme(## plotregion
+    plot.background = element_rect(fill = "#f0f0f0", colour = "#f0f0f0"),
+    panel.border = element_blank(),
+    panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = "lightgrey"),
+    panel.grid.minor = element_blank(),
+    panel.spacing = unit(0.25, "lines"),
+    ## axis line
+    axis.line = element_line(colour = "black", size = 0.5, linetype = "solid")
+  )
+
+ggsave("regression_overall_effect.png", width = 20, height = 10, units = "cm")
+```
+
+
+
+
+
